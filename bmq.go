@@ -174,7 +174,7 @@ func (n *Node) Send(data []byte) error {
 		false, // immediate
 		amqp.Publishing{
 			ContentType: "text/plain",
-			Body:        []byte(string(data)),
+			Body:        data,
 		})
 	if err != nil {
 		return err
