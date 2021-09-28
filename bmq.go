@@ -23,16 +23,16 @@ type Node struct {
 	MQConnection         *amqp.Connection
 	MQChannel            *amqp.Channel
 	NodeConnectionConfig NodeConnectionConfig
+	OnMessageHandler     func(amqp.Delivery)
 }
 
 type NodeConnectionConfig struct {
 	NodeType NodeType
 	NodeId   string
 
-	RoutingKey       string
-	Url              string
-	ExchangeName     string
-	OnMessageHandler func(amqp.Delivery)
+	RoutingKey   string
+	Url          string
+	ExchangeName string
 }
 
 type Engine struct {
@@ -59,7 +59,7 @@ func (e *Engine) Start() {
 			}
 
 			for msg := range messages {
-				node.NodeConnectionConfig.OnMessageHandler(msg)
+				node.OnMessageHandler(msg)
 			}
 		}(node)
 	}
@@ -139,6 +139,10 @@ func NewNode(config NodeConnectionConfig) (*Node, error) {
 		MQConnection:         conn,
 		NodeConnectionConfig: config,
 	}, nil
+}
+
+func (n *Node) SetMessageHandler(handler func(amqp.Delivery)) {
+	n.OnMessageHandler = handler
 }
 
 func (n *Node) subscribe() (<-chan amqp.Delivery, error) {
