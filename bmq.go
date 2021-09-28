@@ -17,24 +17,22 @@ const (
 )
 
 type Node struct {
-	NodeId       string
-	QueueName    string
-	RoutingKey   string
-	SendTo       string
-	ExchangeName string
+	QueueName string
+	SendTo    string
 
-	MQConnection     *amqp.Connection
-	MQChannel        *amqp.Channel
-	OnMessageHandler func(amqp.Delivery)
+	MQConnection         *amqp.Connection
+	MQChannel            *amqp.Channel
+	NodeConnectionConfig NodeConnectionConfig
 }
 
 type NodeConnectionConfig struct {
 	NodeType NodeType
 	NodeId   string
 
-	RoutingKey   string
-	Url          string
-	ExchangeName string
+	RoutingKey       string
+	Url              string
+	ExchangeName     string
+	OnMessageHandler func(amqp.Delivery)
 }
 
 type Engine struct {
@@ -61,7 +59,7 @@ func (e *Engine) Start() {
 			}
 
 			for msg := range messages {
-				node.OnMessageHandler(msg)
+				node.NodeConnectionConfig.OnMessageHandler(msg)
 			}
 		}(node)
 	}
@@ -135,18 +133,12 @@ func NewNode(config NodeConnectionConfig) (*Node, error) {
 	}
 
 	return &Node{
-		QueueName:    queueName,
-		RoutingKey:   routingKey,
-		SendTo:       sendTo,
-		NodeId:       config.NodeId,
-		MQChannel:    ch,
-		MQConnection: conn,
-		ExchangeName: config.ExchangeName,
+		QueueName:            queueName,
+		SendTo:               sendTo,
+		MQChannel:            ch,
+		MQConnection:         conn,
+		NodeConnectionConfig: config,
 	}, nil
-}
-
-func (n *Node) SetMessageHandler(handler func(amqp.Delivery)) {
-	n.OnMessageHandler = handler
 }
 
 func (n *Node) subscribe() (<-chan amqp.Delivery, error) {
@@ -168,7 +160,7 @@ func (n *Node) subscribe() (<-chan amqp.Delivery, error) {
 
 func (n *Node) Send(data []byte) error {
 	err := n.MQChannel.Publish(
-		n.ExchangeName, // exchange
+		n.NodeConnectionConfig.ExchangeName, // exchange
 		n.SendTo,
 		false, // mandatory
 		false, // immediate

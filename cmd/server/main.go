@@ -11,19 +11,18 @@ import (
 
 func main() {
 	cfg := bmq.NodeConnectionConfig{
-		NodeType:     bmq.NODE_SERVER,
-		NodeId:       "tester",
-		RoutingKey:   "updatr",
-		Url:          "amqp://test:test@repl-dev.round2pos.com/",
-		ExchangeName: "updatr_exchange",
+		NodeType:         bmq.NODE_SERVER,
+		NodeId:           "tester",
+		RoutingKey:       "updatr",
+		Url:              "amqp://test:test@repl-dev.round2pos.com/",
+		ExchangeName:     "updatr_exchange",
+		OnMessageHandler: onMessage,
 	}
 
 	node, err := bmq.NewNode(cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	node.SetMessageHandler(onMessage)
 
 	go func() {
 		for {
