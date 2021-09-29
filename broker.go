@@ -8,11 +8,18 @@ import (
 	"github.com/streadway/amqp"
 )
 
+const (
+	CLIENT BrokerType = iota
+	SERVER BrokerType = iota
+)
+
 type (
+	BrokerType int
+
 	Broker struct {
 		// broker id
 		Id    string
-		Type  NodeType
+		Type  BrokerType
 		Route string
 
 		// mq objects
@@ -30,7 +37,7 @@ type (
 		Timeout time.Duration
 
 		// identifiers
-		Type NodeType
+		Type BrokerType
 		Id   string
 
 		// mq settings
@@ -61,9 +68,6 @@ func NewBroker(config Config) (*Broker, error) {
 		mqConnection:   conn,
 		mqChannel:      ch,
 		mqExchangeName: config.ExchangeName,
-		// mqQueue:      queueName,
-		// mqRoutingKey: routingKey,
-		// mqSendTo:     sendTo,
 	}, nil
 }
 
@@ -82,7 +86,7 @@ func (b *Broker) Send(data []byte) (err error) {
 }
 
 func (b *Broker) Start(handler EventsHandler) error {
-	if b.Type == NODE_CLIENT {
+	if b.Type == CLIENT {
 		b.mqQueueName = fmt.Sprintf("%s-client", b.Id)
 		b.mqRoutingKey = fmt.Sprintf("%s.server.%s", b.Id, b.Route)
 		b.mqSendTo = fmt.Sprintf("%s.client.%s", b.Id, b.Route)

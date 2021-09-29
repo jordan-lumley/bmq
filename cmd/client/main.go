@@ -20,25 +20,8 @@ func (evt *evtHandler) OnMessage(message amqp.Delivery) {
 }
 
 func main() {
-	// brokerConfigs := []bmq.Config{
-	// 	{
-	// 		Type: bmq.NODE_CLIENT,
-	// 		Id:   "567",
-
-	// 		Route:        "test",
-	// 		ExchangeName: "test_exchange",
-
-	// 		Url:     "amqp://test:test@repl-dev.round2pos.com/",
-	// 		Timeout: 5 * time.Second,
-	// 	},
-	// }
-
-	// for _, config := range brokerConfigs {
-
-	// }
-
 	config := bmq.Config{
-		Type: bmq.NODE_CLIENT,
+		Type: bmq.CLIENT,
 		Id:   "567",
 
 		Route:        "test",
