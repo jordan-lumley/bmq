@@ -9,36 +9,59 @@ import (
 	"github.com/streadway/amqp"
 )
 
+type evtHandler struct {
+	bmq.EventsHandler
+}
+
+func (evt *evtHandler) OnMessage(message amqp.Delivery) {
+	fmt.Println(string(message.Body))
+
+	message.Ack(false)
+}
+
 func main() {
-	cfg := bmq.NodeConnectionConfig{
-		NodeType:     bmq.NODE_CLIENT,
-		NodeId:       "tester",
-		RoutingKey:   "updatr",
-		Url:          "amqp://test:test@repl-dev.round2pos.com/",
-		ExchangeName: "updatr_exchange",
+	// brokerConfigs := []bmq.Config{
+	// 	{
+	// 		Type: bmq.NODE_CLIENT,
+	// 		Id:   "567",
+
+	// 		Route:        "test",
+	// 		ExchangeName: "test_exchange",
+
+	// 		Url:     "amqp://test:test@repl-dev.round2pos.com/",
+	// 		Timeout: 5 * time.Second,
+	// 	},
+	// }
+
+	// for _, config := range brokerConfigs {
+
+	// }
+
+	config := bmq.Config{
+		Type: bmq.NODE_CLIENT,
+		Id:   "567",
+
+		Route:        "test",
+		ExchangeName: "test_exchange",
+
+		Url:     "amqp://test:test@repl-dev.round2pos.com/",
+		Timeout: 5 * time.Second,
 	}
 
-	node, err := bmq.NewNode(cfg)
+	broker, err := bmq.NewBroker(config)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	node.SetMessageHandler(onMessage)
+	handler := new(evtHandler)
+	go broker.Start(handler)
 
 	go func() {
 		for {
-			time.Sleep(5 * time.Second)
-			node.Send([]byte("Hello from client"))
+			time.Sleep(time.Second * 5)
+			broker.Send([]byte("Hello from client!"))
 		}
 	}()
 
-	engine := bmq.NewEngine()
-	engine.AddNode(node)
-
-	engine.Start()
-}
-
-func onMessage(message amqp.Delivery) {
-	fmt.Println(string(message.Body))
-	message.Ack(false)
+	select {}
 }

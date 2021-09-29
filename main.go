@@ -1,5 +1,0 @@
-package bmq
-
-func main() {
-
-}
