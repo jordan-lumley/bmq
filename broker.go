@@ -77,6 +77,7 @@ func NewBroker(config Config) (*Broker, error) {
 	broker.Type = config.Type
 	broker.mqChannel = ch
 	broker.mqConnection = conn
+	broker.mqExchangeName = config.ExchangeName
 
 	return broker, nil
 	// &Broker{
