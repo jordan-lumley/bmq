@@ -63,6 +63,7 @@ func NewBroker(config Config) (*Broker, error) {
 	}
 
 	broker := new(Broker)
+
 	if config.Type == CLIENT {
 		broker.QueueName = fmt.Sprintf("%s-client", config.Id)
 		broker.RoutingKey = fmt.Sprintf("%s.server.%s", config.Id, config.Route)
@@ -75,6 +76,7 @@ func NewBroker(config Config) (*Broker, error) {
 
 	broker.Id = config.Id
 	broker.Type = config.Type
+	broker.Route = config.Route
 	broker.mqChannel = ch
 	broker.mqConnection = conn
 	broker.mqExchangeName = config.ExchangeName
