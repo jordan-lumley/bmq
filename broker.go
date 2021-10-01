@@ -62,6 +62,19 @@ func NewBroker(config Config) (*Broker, error) {
 		return nil, err
 	}
 
+	err = ch.ExchangeDeclare(
+		config.ExchangeName, // name
+		"direct",            // type
+		true,                // durable
+		false,               // auto-deleted
+		false,               // internal
+		false,               // no-wait
+		nil,                 // arguments
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	broker := new(Broker)
 
 	if config.Type == CLIENT {
@@ -82,12 +95,6 @@ func NewBroker(config Config) (*Broker, error) {
 	broker.mqExchangeName = config.ExchangeName
 
 	return broker, nil
-	// &Broker{
-	// 	Route:          config.Route,
-	// 	mqConnection:   conn,
-	// 	mqChannel:      ch,
-	// 	mqExchangeName: config.ExchangeName,
-	// }, nil
 }
 
 func (b *Broker) Send(data []byte) (err error) {
@@ -110,20 +117,7 @@ func (b *Broker) Close() {
 }
 
 func (b *Broker) Start(handler EventsHandler) error {
-	err := b.mqChannel.ExchangeDeclare(
-		b.mqExchangeName, // name
-		"direct",         // type
-		true,             // durable
-		false,            // auto-deleted
-		false,            // internal
-		false,            // no-wait
-		nil,              // arguments
-	)
-	if err != nil {
-		return err
-	}
-
-	_, err = b.mqChannel.QueueDeclare(
+	_, err := b.mqChannel.QueueDeclare(
 		b.QueueName, // name
 		true,        // durable
 		false,       // delete when unused
