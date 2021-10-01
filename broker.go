@@ -22,13 +22,14 @@ type (
 		Type  BrokerType
 		Route string
 
+		QueueName  string
+		RoutingKey string
+		SendingTo  string
+
 		// mq objects
 		mqConnection   *amqp.Connection
 		mqChannel      *amqp.Channel
-		mqQueueName    string
-		mqRoutingKey   string
 		mqExchangeName string
-		mqSendTo       string
 	}
 
 	Config struct {
@@ -61,20 +62,36 @@ func NewBroker(config Config) (*Broker, error) {
 		return nil, err
 	}
 
-	return &Broker{
-		Id:             config.Id,
-		Type:           config.Type,
-		Route:          config.Route,
-		mqConnection:   conn,
-		mqChannel:      ch,
-		mqExchangeName: config.ExchangeName,
-	}, nil
+	broker := new(Broker)
+	if config.Type == CLIENT {
+		broker.QueueName = fmt.Sprintf("%s-client", config.Id)
+		broker.RoutingKey = fmt.Sprintf("%s.server.%s", config.Id, config.Route)
+		broker.SendingTo = fmt.Sprintf("%s.client.%s", config.Id, config.Route)
+	} else {
+		broker.QueueName = fmt.Sprintf("%s-server", config.Id)
+		broker.RoutingKey = fmt.Sprintf("%s.client.%s", config.Id, config.Route)
+		broker.SendingTo = fmt.Sprintf("%s.server.%s", config.Id, config.Route)
+	}
+
+	broker.Id = config.Id
+	broker.Type = config.Type
+	broker.mqChannel = ch
+	broker.mqConnection = conn
+
+	return broker, nil
+	// &Broker{
+	// 	Route:          config.Route,
+	// 	mqConnection:   conn,
+	// 	mqChannel:      ch,
+	// 	mqExchangeName: config.ExchangeName,
+	// }, nil
 }
 
 func (b *Broker) Send(data []byte) (err error) {
+	fmt.Printf("Sending to: %s for queue: %s\n", b.SendingTo, b.QueueName)
 	err = b.mqChannel.Publish(
 		b.mqExchangeName, // exchange
-		b.mqSendTo,       // routing key
+		b.SendingTo,      // routing key
 		false,            // mandatory
 		false,            // immediate
 		amqp.Publishing{
@@ -86,16 +103,6 @@ func (b *Broker) Send(data []byte) (err error) {
 }
 
 func (b *Broker) Start(handler EventsHandler) error {
-	if b.Type == CLIENT {
-		b.mqQueueName = fmt.Sprintf("%s-client", b.Id)
-		b.mqRoutingKey = fmt.Sprintf("%s.server.%s", b.Id, b.Route)
-		b.mqSendTo = fmt.Sprintf("%s.client.%s", b.Id, b.Route)
-	} else {
-		b.mqQueueName = fmt.Sprintf("%s-server", b.Id)
-		b.mqRoutingKey = fmt.Sprintf("%s.client.%s", b.Id, b.Route)
-		b.mqSendTo = fmt.Sprintf("%s.server.%s", b.Id, b.Route)
-	}
-
 	err := b.mqChannel.ExchangeDeclare(
 		b.mqExchangeName, // name
 		"direct",         // type
@@ -110,20 +117,20 @@ func (b *Broker) Start(handler EventsHandler) error {
 	}
 
 	_, err = b.mqChannel.QueueDeclare(
-		b.mqQueueName, // name
-		true,          // durable
-		false,         // delete when unused
-		false,         // exclusive
-		false,         // no-wait
-		nil,           // arguments
+		b.QueueName, // name
+		true,        // durable
+		false,       // delete when unused
+		false,       // exclusive
+		false,       // no-wait
+		nil,         // arguments
 	)
 	if err != nil {
 		return err
 	}
 
 	err = b.mqChannel.QueueBind(
-		b.mqQueueName,    // queue name
-		b.mqRoutingKey,   // routing key
+		b.QueueName,      // queue name
+		b.RoutingKey,     // routing key
 		b.mqExchangeName, // exchange
 		false,
 		nil,
@@ -133,13 +140,13 @@ func (b *Broker) Start(handler EventsHandler) error {
 	}
 
 	messages, err := b.mqChannel.Consume(
-		b.mqQueueName, // queue
-		"",            // consumer
-		false,         // auto ack
-		false,         // exclusive
-		false,         // no local
-		false,         // no wait
-		nil,           // args
+		b.QueueName, // queue
+		"",          // consumer
+		false,       // auto ack
+		false,       // exclusive
+		false,       // no local
+		false,       // no wait
+		nil,         // args
 	)
 	if err != nil {
 		return err
