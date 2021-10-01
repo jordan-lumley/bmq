@@ -89,7 +89,6 @@ func NewBroker(config Config) (*Broker, error) {
 }
 
 func (b *Broker) Send(data []byte) (err error) {
-	fmt.Printf("Sending to: %s for queue: %s\n", b.SendingTo, b.QueueName)
 	err = b.mqChannel.Publish(
 		b.mqExchangeName, // exchange
 		b.SendingTo,      // routing key
@@ -101,6 +100,11 @@ func (b *Broker) Send(data []byte) (err error) {
 		})
 
 	return
+}
+
+func (b *Broker) Close() {
+	defer b.mqChannel.Close()
+	defer b.mqConnection.Close()
 }
 
 func (b *Broker) Start(handler EventsHandler) error {
